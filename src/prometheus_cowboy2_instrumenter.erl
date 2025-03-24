@@ -44,6 +44,18 @@ Collects Cowboy metrics using
     - Labels: default - `[method, reason, status_class]`, configured via `request_labels`.
     - Buckets: default - `[0.01, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 4]`,
         configured via `duration_buckets`.
+- `cowboy_request_body_size_bytes`:
+    Request body size in bytes.
+    - Type: histogram.
+    - Labels: default - `[method, reason, status_class]`, configured via `request_labels`.
+    - Buckets: default - `[0 | prometheus_buckets:exponential(1, 8.0, 9)]` (0 KiB - 16 MiB),
+        configured via `body_size_buckets`.
+- `cowboy_response_body_size_bytes`:
+    Response body size in bytes.
+    - Type: histogram.
+    - Labels: default - `[method, reason, status_class]`, configured via `request_labels`.
+    - Buckets: default - `[0 | prometheus_buckets:exponential(1, 8.0, 9)]` (0 KiB - 16 MiB),
+        configured via `body_size_buckets`.
 
 ## Configuration
 
@@ -170,6 +182,20 @@ setup() ->
         {buckets, duration_buckets()},
         {help, "Request body receiving duration."}
     ]),
+    prometheus_histogram:declare([
+        {name, cowboy_request_body_size_bytes},
+        {registry, registry()},
+        {labels, request_labels()},
+        {buckets, body_size_buckets()},
+        {help, "Request body size in bytes."}
+    ]),
+    prometheus_histogram:declare([
+        {name, cowboy_response_body_size_bytes},
+        {registry, registry()},
+        {labels, request_labels()},
+        {buckets, body_size_buckets()},
+        {help, "Response body size in bytes."}
+    ]),
     ok.
 
 %% ===================================================================
@@ -186,6 +212,8 @@ dispatch_metrics(
         req_end := ReqEnd,
         req_body_start := ReqBodyStart,
         req_body_end := ReqBodyEnd,
+        req_body_length := ReqBodyLength,
+        resp_body_length := RespBodyLength,
         reason := Reason,
         procs := Procs
     } = Metrics
@@ -194,6 +222,8 @@ dispatch_metrics(
     inc(cowboy_requests_total, RequestLabels),
     inc(cowboy_spawned_processes_total, RequestLabels, maps:size(Procs)),
     observe(cowboy_request_duration_seconds, RequestLabels, ReqEnd - ReqStart),
+    observe(cowboy_request_body_size_bytes, RequestLabels, ReqBodyLength),
+    observe(cowboy_response_body_size_bytes, RequestLabels, RespBodyLength),
     case ReqBodyEnd of
         undefined ->
             ok;
@@ -286,6 +316,13 @@ get_config_value(Key, Default) ->
 
 duration_buckets() ->
     get_config_value(duration_buckets, ?DEFAULT_DURATION_BUCKETS).
+
+body_size_buckets() ->
+    get_config_value(
+        body_size_buckets,
+        % Range from 0 to 16 MiB
+        [0 | prometheus_buckets:exponential(8, 8.0, 8)]
+    ).
 
 early_error_labels() ->
     get_config_value(early_error_labels, ?DEFAULT_EARLY_ERROR_LABELS).

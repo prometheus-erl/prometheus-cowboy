@@ -171,7 +171,6 @@ prometheus_cowboy2_instrumenter(Config) ->
             <<"POST">>, normal, "client-error"
         ])
     ),
-
     ?assertMatch(
         1,
         prometheus_counter:value(cowboy_requests_total, [
@@ -188,6 +187,18 @@ prometheus_cowboy2_instrumenter(Config) ->
         {[0, 1, 0, 0, 0, 0, 0, 0, 0, 0], 0.1},
         prometheus_histogram:value(cowboy_receive_body_duration_seconds, [
             <<"POST">>, connection_error, "client-error"
+        ])
+    ),
+    ?assertMatch(
+        {[0, 1, 0, 0, 0, 0, 0, 0, 0, 0], 5},
+        prometheus_histogram:value(cowboy_request_body_size_bytes, [
+            <<"POST">>, normal, "client-error"
+        ])
+    ),
+    ?assertMatch(
+        {[0, 0, 0, 1, 0, 0, 0, 0, 0, 0], 512},
+        prometheus_histogram:value(cowboy_response_body_size_bytes, [
+            <<"POST">>, normal, "client-error"
         ])
     ),
     ?assertMatch(
@@ -234,9 +245,11 @@ generate_metrics(Reason, Procs, Listener) ->
         req_end => 1000000001,
         req_body_start => 100000000,
         req_body_end => 200000000,
+        req_body_length => 5,
         reason => Reason,
         req => #{method => <<"POST">>},
         resp_status => 401,
+        resp_body_length => 512,
         procs => generate_procs(Procs)
     }.
 
