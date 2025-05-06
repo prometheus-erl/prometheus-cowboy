@@ -41,13 +41,13 @@ init([]) ->
 ?DOC(false).
 -spec to_cowboy_headers([{atom(), binary()}]) -> [{binary(), binary()}].
 to_cowboy_headers(RespHeaders) ->
-    lists:map(fun to_cowboy_headers_/1, RespHeaders).
+    lists:map(fun to_cowboy_header/1, RespHeaders).
 
 %% ===================================================================
 %% Private functions
 %% ===================================================================
 
-to_cowboy_headers_({Name, Value}) ->
+to_cowboy_header({Name, Value}) ->
     {to_cowboy_name(Name), Value}.
 
 to_cowboy_name(Name) ->
