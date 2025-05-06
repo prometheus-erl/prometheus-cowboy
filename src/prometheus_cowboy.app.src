@@ -13,5 +13,5 @@
     {modules, []},
     {mod, {prometheus_cowboy, []}},
     {licenses, ["MIT"]},
-    {links, [{"Github", "https://github.com/prometheus-erl/prometheus_cowboy"}]}
+    {links, [{"Github", "https://github.com/prometheus-erl/prometheus-cowboy"}]}
 ]}.
